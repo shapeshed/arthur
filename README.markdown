@@ -21,8 +21,10 @@ Arthur is licensed under a [Open Source Initiative - BSD License][] license.
 You need Perl and the following modules:
 
 * WWW::Curl::Easy;
-* JSON -support_by_pp;
+* JSON;
 * URI::Escape;
+
+Open up bot.pl and enter your username and password and the search term you want to retweet.
 
 You can either put Arthur.pm in a standard Perl modules folder or link to it in the bot.pl file with something like:
 
