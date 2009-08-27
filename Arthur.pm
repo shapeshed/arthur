@@ -114,33 +114,51 @@ sub get_data
 # Posts data to Twitter via cURL
 ####################################
 sub post_to_twitter($json_data)
-	{
-    	my ($self) = @_;
+	{    	
+		my ($self) = @_;
+		
 		$username = $self->twitterUsername;
 		$password = $self->twitterPassword;
 				
+		# Get the last id so we can compare it with a local one
 		$status_id = $json_data->{results}[0]->{id};
 		
+		# Loop through the results reversing the order first
 		foreach $results(reverse(@{$json_data->{results}}))
 		{					
+
+			# Don't retweet own retweets		
 			if ($results->{from_user} ne $self->twitterUsername)
-			{				
-				$tweet = "RT \@$results->{from_user} $results->{text}";
-				$tweet = trim_tweet(uri_escape_utf8($tweet));
+			{
 				
-				if (&get_status_id)
+				# Don't retweet other people's retweets				
+				if ($results->{text} !~ /^(\s*)?[RrTt]/)
 				{
-					if ($results->{id} > &get_status_id)
+					
+					# Format tweet
+					$tweet = "RT \@$results->{from_user} $results->{text}";
+					$tweet = trim_tweet(uri_escape_utf8($tweet));
+				
+					# Find out if we have a locally stored id
+					if (&get_status_id)
 					{
-						post_tweet($tweet, $username, $password);
+						
+						# We do so only post ones after that id
+						if ($results->{id} > &get_status_id)
+						{
+							post_tweet($tweet, $username, $password);
+						}
 					}
-				}
-				else
-				{
-					post_tweet($tweet, $username, $password);	
+					
+					# No local id so post them all
+					else
+					{
+						post_tweet($tweet, $username, $password);	
+					}
 				}				
 			}					
-		}				
+		}	
+		# Finally write the status id to the local file for next time			
 		&write_status_id($status_id);
 	}
 	
