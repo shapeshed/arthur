@@ -20,6 +20,7 @@
 package Arthur;
 
 use strict;
+use WWW::Curl::Easy;
 use JSON -support_by_pp;
 use URI::Escape;
 
@@ -27,29 +28,29 @@ use URI::Escape;
 sub new {
 	my ($class) = @_;
 	my $self = {
-	    _searchString => undef,
-	    _twitterUsername  => undef,
-	    _twitterPassword       => undef,
+	    _searchString		=> undef,
+	    _twitterUsername	=> undef,
+	    _twitterPassword	=> undef,
 	};
 	bless $self, $class;
 	return $self;
 }
 
-#accessor method for Person first name
+#accessor method for Search String
 sub searchString {
     my ( $self, $searchString  ) = @_;
     $self->{_searchString } = $searchString if defined($searchString);
     return $self->{_searchString};
 }
 
-#accessor method for Person last name
+#accessor method for Username
 sub twitterUsername {
     my ( $self, $twitterUsername ) = @_;
     $self->{_twitterUsername} = $twitterUsername if defined($twitterUsername);
     return $self->{_twitterUsername};
 }
 
-#accessor method for Person last name
+#accessor method for Password
 sub twitterPassword {
     my ( $self, $twitterPassword ) = @_;
     $self->{_twitterPassword} = $twitterPassword if defined($twitterPassword);
@@ -72,6 +73,10 @@ my $continued = "..";
 my $search;
 my $username;
 my $password;
+my $curl;
+my $curl_request;
+my $response_body;
+
 
 ####################################
 # Gets data from Twitter via cURL
@@ -82,14 +87,27 @@ sub get_data
 
 		$search = uri_escape_utf8($self->searchString);
 		
-		$data = `curl http://search.twitter.com/search.json?q=$search`;	
-		
-		$json = new JSON;
-		
-		$json_data = $json->allow_nonref->utf8->relaxed->escape_slash->loose->allow_singlequote->allow_barekey->decode($data);
-		
-		return $json_data;
+		my $curl = new WWW::Curl::Easy;
+		$curl->setopt(CURLOPT_CONNECTTIMEOUT, 5);
+		$curl->setopt(CURLOPT_TIMEOUT, 120);
+		$curl->setopt(CURLOPT_URL, "http://search.twitter.com/search.json?q=$search");	
+		$curl->setopt(CURLOPT_WRITEFUNCTION, \&chunk ); # sub to print to $result
+		$curl->setopt(CURLOPT_FILE, \$response_body);
+		$curl_request = $curl->perform;	
 	
+		if ($curl_request == 0) 
+		{
+			if($curl->getinfo(CURLINFO_HTTP_CODE) == 200)
+			{
+				$json = new JSON;
+				$json_data = $json->allow_nonref->utf8->relaxed->escape_slash->loose->allow_singlequote->allow_barekey->decode($response_body);
+				return $json_data;				
+			}
+		} 
+		else 
+		{
+			die;
+		}			
 	}
 
 ####################################
@@ -102,28 +120,48 @@ sub post_to_twitter($json_data)
 		$password = $self->twitterPassword;
 				
 		$status_id = $json_data->{results}[0]->{id};
-			
+		
 		foreach $results(reverse(@{$json_data->{results}}))
-		{
-			$tweet = "RT \@$results->{from_user} $results->{text}";
-			$tweet = trim_tweet(uri_escape_utf8($tweet));
-		
-			if (&get_status_id)
-			{
-				if ($results->{id} > &get_status_id)
+		{					
+			if ($results->{from_user} ne $self->twitterUsername)
+			{				
+				$tweet = "RT \@$results->{from_user} $results->{text}";
+				$tweet = trim_tweet(uri_escape_utf8($tweet));
+				
+				if (&get_status_id)
 				{
-					`curl -u $username:$password -d "status=$tweet" http://twitter.com/statuses/update.json`
+					if ($results->{id} > &get_status_id)
+					{
+						post_tweet($tweet, $username, $password);
+					}
 				}
-			}
-			else
-			{
-				`curl -u $username:$password -d "status=$tweet" http://twitter.com/statuses/update.json`			
-			}
-		}	
-		
-		&write_status_id;
+				else
+				{
+					post_tweet($tweet, $username, $password);	
+				}				
+			}					
+		}				
+		&write_status_id($status_id);
 	}
-
+	
+####################################
+# Send tweets via cURL
+####################################
+sub post_tweet($tweet)
+	{	
+		my $curl = new WWW::Curl::Easy;
+		$curl->setopt(CURLOPT_CONNECTTIMEOUT, 5);
+		$curl->setopt(CURLOPT_TIMEOUT, 120);
+		$curl->setopt(CURLOPT_URL, "http://twitter.com/statuses/update.json");	
+		$curl->setopt(CURLOPT_POST, 1);
+		$curl->setopt(CURLOPT_POSTFIELDS, "status=$tweet");
+		$curl->setopt(CURLOPT_USERPWD, "$username:$password");
+		$curl->setopt(CURLOPT_WRITEFUNCTION, \&chunk ); # sub to print to $result
+		$curl->setopt(CURLOPT_FILE, \$response_body);
+		$curl_request = $curl->perform;
+	}	
+	
+	
 ####################################
 # Gets the latest status id from the 
 # local file
@@ -145,7 +183,7 @@ sub get_status_id
 ####################################
 # Posts data to Twitter via cURL
 ####################################
-sub write_status_id
+sub write_status_id($status_id)
 	{ 
 		open(STATUS, ">last_status");
 		print STATUS $status_id;
@@ -171,4 +209,12 @@ sub trim_tweet($tweet)
 			return($tweet);
 		}	
 	}
+####################################
+# Functions used for the cURL call
+####################################
+sub chunk {
+	my ($data,$pointer)=@_; 
+   	$$pointer .= $data;
+	return length($data);
+}
 1;
