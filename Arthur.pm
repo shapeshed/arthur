@@ -139,7 +139,7 @@ sub post_to_twitter($json_data)
 					$tweet = "RT \@$results->{from_user} $results->{text}";
 					$tweet = trim_tweet(uri_escape_utf8($tweet));
 				
-					# Find out if we have a locally stored id
+					# Find out if we have a locally stored id s
 					if (&get_status_id)
 					{
 						
