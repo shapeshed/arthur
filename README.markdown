@@ -33,6 +33,6 @@ Arthur is a Twitter Retweet Robot written in Perl. It allows you to retweet term
 To follow..
 
 [George Ornbo]: http://shapeshed.com/
-[Github]: http://github.com/shapeshed/copyright.ee_addon/
+[Github]: http://github.com/shapeshed/arthur/
 [ExpressionEngine]:http://www.expressionengine.com/index.php?affiliate=shapeshed
 [Open Source Initiative - BSD License]: http://opensource.org/licenses/bsd-license.php
