@@ -167,6 +167,7 @@ sub post_to_twitter($json_data)
 ####################################
 sub post_tweet($tweet)
 	{	
+		$tweet = uri_escape_utf8($tweet);
 		my $curl = new WWW::Curl::Easy;
 		$curl->setopt(CURLOPT_CONNECTTIMEOUT, 5);
 		$curl->setopt(CURLOPT_TIMEOUT, 120);
