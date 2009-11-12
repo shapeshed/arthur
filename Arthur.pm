@@ -132,7 +132,7 @@ sub post_to_twitter($json_data)
 			{
 				
 				# Don't retweet other people's retweets				
-				if ($results->{text} !~ /^(\s*)?[RrTt]/)
+				if ($results->{text} !~ /^(\s*)[Rr][Tt]/)
 				{
 					
 					# Format tweet
