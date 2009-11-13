@@ -158,8 +158,11 @@ sub post_to_twitter($json_data)
 				}				
 			}					
 		}	
-		# Finally write the status id to the local file for next time			
-		&write_status_id($status_id);
+		# Finally write the status id to the local file for next time
+		if ($status_id > &get_status_id)
+		{
+			&write_status_id($status_id);
+		}
 	}
 	
 ####################################
