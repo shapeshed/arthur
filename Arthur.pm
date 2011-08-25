@@ -100,7 +100,7 @@ sub get_data
 			if($curl->getinfo(CURLINFO_HTTP_CODE) == 200)
 			{
 				$json = new JSON;
-				$json_data = $json->allow_nonref->utf8->relaxed->escape_slash->loose->allow_singlequote->allow_barekey->decode($response_body);
+				$json_data = $json->allow_nonref->utf8->relaxed->escape_slash->loose->allow_singlequote->allow_barekey->decode_prefix($response_body);
 				return $json_data;				
 			}
 		} 
